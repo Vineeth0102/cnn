@@ -1,80 +1,66 @@
 import java.util.Scanner;
-public class BellmanFord
-{
-    private int D[];
-    private int num_ver;
-    public static final int MAX_VALUE = 999;
-    public BellmanFord(int num_ver)
-    {
-        this.num_ver = num_ver;
-        D = new int[num_ver + 1];
+
+public class Belmanford{
+
+    private int data[];
+    private int nodes;
+    public static final int max_value=999;
+    public Belmanford(int n){
+    this.nodes=n;
+    data=new int[nodes+1];
     }
-    public void BellmanFordEvaluation(int source, int A[][])
-    {
-        for (int node = 1; node <= num_ver; node++)
-        {
-            D[node] = MAX_VALUE;
+    public void shortest(int source,int arr[][]){
+        for(int i=1;i<=nodes;i++){
+        data[i]=max_value;
         }
-        D[source] = 0;
-        for (int node = 1; node <= num_ver - 1; node++)
-        {
-            for (int sn = 1; sn <= num_ver; sn++)
-            {
-                for (int dn = 1; dn <= num_ver; dn++)
-                {
-                    if (A[sn][dn] != MAX_VALUE)
-                    {
-                        if (D[dn] > D[sn]+ A[sn][dn])
-                        D[dn] = D[sn] + A[sn][dn];
+        data[source]=0;
+        for(int k=1;k<=nodes-1;k++){
+            for(int i=1;i<=nodes;i++){
+                for(int j=1;j<=nodes;j++){
+                    if(arr[i][j]!=max_value){
+                        if(data[j]>data[i]+arr[i][j])
+                        data[j]=data[i]+arr[i][j];
+                        }
                     }
                 }
             }
-        }
-        for (int sn = 1; sn <= num_ver; sn++)
-        {
-            for (int dn = 1; dn <= num_ver; dn++)
-            {
-                if (A[sn][dn] != MAX_VALUE)
-                {
-                    if (D[dn] > D[sn]+ A[sn][dn])
-                    System.out.println("The Graph contains negative egde cycle");
+        for (int i=1;i<=nodes;i++){
+            for (int j=1;j<=nodes;j++){
+                if(arr[i][j]!=max_value){
+                    if(data[j]>data[i]+arr[i][j]){
+                        System.out.println("the graph contains -ve edge cycle");
+                        }   
+                    }
                 }
             }
+        for (int i=1;i<=nodes;i++){
+            System.out.println("distance of source "+source+" to "+i+" is "+data[i]);
+            }
         }
-        for (int vertex = 1; vertex <= num_ver; vertex++)
-        {
-            System.out.println("distance of source " + source + " to "+ vertex + " is " + D[vertex]);
-        }
-    }
-    public static void main(String[ ] args)
-    {
-        int num_ver = 0;
-        int source;
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("Enter the number of vertices");
-        num_ver = scanner.nextInt();
-        int A[][] = new int[num_ver + 1][num_ver + 1];
-        System.out.println("Enter the adjacency matrix");
-        for (int sn = 1; sn <= num_ver; sn++)
-        {
-            for (int dn = 1; dn <= num_ver; dn++)
-            {
-                A[sn][dn] = scanner.nextInt();
-                if (sn == dn)
-                {
-                    A[sn][dn] = 0;
+
+    public static void main(String[] args){
+        int nodes=0,source;
+        Scanner sc = new Scanner(System.in);
+        System.out.print("Enter the number of nodes : ");
+        nodes = sc.nextInt();
+        int arr[][] = new int[nodes+1][nodes+1];
+        System.out.println("Enter the weighted matrix : ");
+        for(int i = 1; i<=nodes ; i++){
+            for(int j = 1 ; j<= nodes ; j++){
+                arr[i][j] = sc.nextInt();
+                if(i==j){
+                    arr[i][j]=0;
                     continue;
-                }
-                if (A[sn][dn] == 0)
-                {
-                    A[sn][dn] = MAX_VALUE;
+                    }
+                if(arr[i][j]==0){
+                    arr[i][j]=max_value;
                 }
             }
         }
-        System.out.println("Enter the source vertex");
-        source = scanner.nextInt();
-        BellmanFord b = new BellmanFord (num_ver);
-        b.BellmanFordEvaluation(source, A);
-        scanner.close();
+        System.out.println("Enter source vertex : ");
+        source = sc.nextInt();
+        Belmanford bel = new Belmanford(nodes);
+        bel.shortest(source,arr);
+        sc.close();
     }
 }
