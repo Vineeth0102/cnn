@@ -1,0 +1,122 @@
+-----------------------------------------TCL File--------------------------------------
+
+# This script is created by NSG2 beta1
+# <http://wushoupong.googlepages.com/nsg>
+
+#===================================
+#     Simulation parameters setup
+#===================================
+set val(stop)   10.0                         ;# time of simulation end
+
+#===================================
+#        Initialization        
+#===================================
+#Create a ns simulator
+set ns [new Simulator]
+
+#Open the NS trace file
+set tracefile [open prog3.tr w]
+$ns trace-all $tracefile
+
+#Open the NAM trace file
+set namfile [open prog3.nam w]
+$ns namtrace-all $namfile
+
+#===================================
+#        Nodes Definition        
+#===================================
+#Create 6 nodes
+set n0 [$ns node]
+set n1 [$ns node]
+set n2 [$ns node]
+set n3 [$ns node]
+set n4 [$ns node]
+set n5 [$ns node]
+
+#===================================
+#        Links Definition        
+#===================================
+#Createlinks between nodes
+$ns duplex-link $n1 $n0 100.0Mb 10ms DropTail
+$ns queue-limit $n1 $n0 50
+$ns duplex-link $n2 $n0 100.0Mb 10ms DropTail
+$ns queue-limit $n2 $n0 50
+$ns duplex-link $n3 $n0 100.0Mb 10ms DropTail
+$ns queue-limit $n3 $n0 50
+$ns duplex-link $n4 $n0 100.0Mb 10ms DropTail
+$ns queue-limit $n4 $n0 50
+$ns duplex-link $n5 $n0 100.0Mb 10ms DropTail
+$ns queue-limit $n5 $n0 50
+
+#Give node position (for NAM)
+$ns duplex-link-op $n1 $n0 orient right-down
+$ns duplex-link-op $n2 $n0 orient right-down
+$ns duplex-link-op $n3 $n0 orient left-down
+$ns duplex-link-op $n4 $n0 orient left-up
+$ns duplex-link-op $n5 $n0 orient right-up
+
+#===================================
+#        Agents Definition        
+#===================================
+#Setup a TCP connection
+set tcp0 [new Agent/Ping]
+$ns attach-agent $n1 $tcp0
+set sink1 [new Agent/Ping]
+$ns attach-agent $n4 $sink1
+$ns connect $tcp0 $sink1
+$tcp0 set packetSize_ 1500
+
+#Setup a TCP connection
+set tcp2 [new Agent/Ping]
+$ns attach-agent $n5 $tcp2
+set sink3 [new Agent/Ping]
+$ns attach-agent $n3 $sink3
+$ns connect $tcp2 $sink3
+$tcp2 set packetSize_ 1500
+
+Agent/Ping instproc recv {from rtt} {
+$self instvar node_
+puts "node [$node_ id] received ans from $from with rtt $rtt msec"
+}
+
+
+#===================================
+#        Applications Definition        
+#===================================
+
+#===================================
+#        Termination        
+#===================================
+#Define a 'finish' procedure
+proc finish {} {
+    global ns tracefile namfile
+    $ns flush-trace
+    close $tracefile
+    close $namfile
+    exec nam prog3.nam &
+    exit 0
+}
+$ns at 32 "$tcp0 send"
+$ns at 16 "$tcp2 send"
+$ns at 8 "$tcp0 send"
+$ns at 4 "$tcp2 send"
+$ns at $val(stop) "$ns nam-end-wireless $val(stop)"
+$ns at $val(stop) "finish"
+$ns at $val(stop) "puts \"done\" ; $ns halt"
+$ns run
+
+
+
+-----------------------------------------AWK File--------------------------------------
+
+BEGIN{
+	COUNT=0;
+}
+{
+	if($1=="d")
+		COUNT++;
+}
+END{
+	printf("No. of Packets Droped %d \n", COUNT);
+}
+

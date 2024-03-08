@@ -1,0 +1,155 @@
+-----------------TCL File------------------------
+
+#===================================
+#     Simulation parameters setup
+#===================================
+set val(stop)   10.0                         ;# time of simulation end
+
+#===================================
+#        Initialization        
+#===================================
+#Create a ns simulator
+set ns [new Simulator]
+
+#Open the NS trace file
+set tracefile [open prog5.tr w]
+$ns trace-all $tracefile
+
+#Open the NAM trace file
+set namfile [open prog5.nam w]
+$ns namtrace-all $namfile
+
+#===================================
+#        Nodes Definition        
+#===================================
+#Create 6 nodes
+set n0 [$ns node]
+set n1 [$ns node]
+set n2 [$ns node]
+set n3 [$ns node]
+set n4 [$ns node]
+set n5 [$ns node]
+
+#===================================
+#        Links Definition        
+#===================================
+#Createlinks between nodes
+$ns duplex-link $n1 $n2 100.0Mb 10ms DropTail
+$ns queue-limit $n1 $n2 50
+set Lan [$ns newLan "$n0 $n1 $n3 $n4 $n5" 100Mb 100ms LL Queue/DropTailMac/802_3]
+
+#Give node position (for NAM)
+$ns duplex-link-op $n1 $n2 orient right
+
+#===================================
+#        Agents Definition        
+#===================================
+#Setup a TCP connection
+set tcp0 [new Agent/TCP]
+$ns attach-agent $n0 $tcp0
+set sink2 [new Agent/TCPSink]
+$ns attach-agent $n4 $sink2
+$ns connect $tcp0 $sink2
+$tcp0 set packetSize_ 1500
+
+#Setup a TCP connection
+set tcp1 [new Agent/TCP]
+$ns attach-agent $n2 $tcp1
+set sink3 [new Agent/TCPSink]
+$ns attach-agent $n5 $sink3
+$ns connect $tcp1 $sink3
+$tcp1 set packetSize_ 1500
+
+
+#===================================
+#        Applications Definition        
+#===================================
+#Setup a FTP Application over TCP connection
+set ftp0 [new Application/FTP]
+$ftp0 attach-agent $tcp0
+$ns at 1.0 "$ftp0 start"
+$ns at 2.0 "$ftp0 stop"
+
+#Setup a FTP Application over TCP connection
+set ftp1 [new Application/FTP]
+$ftp1 attach-agent $tcp1
+$ns at 1.0 "$ftp1 start"
+$ns at 2.0 "$ftp1 stop"
+
+set file1 [open file1.tr w]
+$tcp0 attach $file1
+set file2 [open file2.tr w]
+$tcp1 attach $file2
+$tcp0 trace cwnd_
+$tcp1 trace cwnd_
+
+
+#===================================
+#        Termination        
+#===================================
+#Define a 'finish' procedure
+proc finish {} {
+    global ns tracefile namfile
+    $ns flush-trace
+    close $tracefile
+    close $namfile
+    exec nam prog5.nam &
+    exit 0
+    
+    $ns at 0.1 "$ftp0 start"
+    $ns at 0.9 "$ftp0 stop"
+
+    $ns at 0.2 "$ftp1 start"
+    $ns at 0.8 "$ftp1 stop"
+
+    $ns at 10 "finish"
+}
+$ns at $val(stop) "$ns nam-end-wireless $val(stop)"
+$ns at $val(stop) "finish"
+$ns at $val(stop) "puts \"done\" ; $ns halt"
+$ns run
+
+
+
+----------AWK File--------------------------------
+BEGIN{
+}
+{
+	if($6=="cwnd_")
+	printf("%f\t %f\t \n",$1, $7);
+}
+END{
+}
+
+
+------------------------File1.tr-----------------------
+0.00000  0  0  4  0  cwnd_ 1.000 
+1.40001  0  0  4  0  cwnd_ 2.000 
+1.80002  0  0  4  0  cwnd_ 3.000 
+1.80643  0  0  4  0  cwnd_ 4.000 
+2.20002  0  0  4  0  cwnd_ 5.000 
+2.20644  0  0  4  0  cwnd_ 6.000 
+2.21286  0  0  4  0  cwnd_ 7.000 
+2.21927  0  0  4  0  cwnd_ 8.000 
+3.06927  0  0  4  0  cwnd_ 1.000 
+
+------------------------File2.tr-----------------------
+0.00000  2  0  5  0  cwnd_ 1.000 
+1.42001  2  0  5  0  cwnd_ 2.000 
+1.84015  2  0  5  0  cwnd_ 3.000 
+1.84656  2  0  5  0  cwnd_ 4.000 
+2.26028  2  0  5  0  cwnd_ 5.000 
+2.26670  2  0  5  0  cwnd_ 6.000 
+2.27312  2  0  5  0  cwnd_ 7.000 
+2.27953  2  0  5  0  cwnd_ 8.000 
+3.17953  2  0  5  0  cwnd_ 1.000 
+
+----------------Output Command--------------------------
+ng Prog5.tcl
+
+gedit file1.tr
+gedit file2.tr
+
+awk -f Prog5.awk file1.tr>a1
+awk -f Prog5.awk file2.tr>a2
+xgraph a1 a2
